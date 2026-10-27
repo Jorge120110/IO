@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GeoRuta SOS - Centro de Comando PC y Gestion de Usuarios</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-card: #ffffff;
+            --text-dark: #0f172a;
+            --text-muted: #475569;
+            --primary: #1d4ed8;
+            --primary-hover: #1e40af;
+            --danger: #dc2626;
+            --danger-hover: #b91c1c;
+            --success: #16a34a;
+            --teal: #0f766e;
+            --border: #cbd5e1;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background: #f1f5f9;
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Top Bar */
+        header {
+            background: var(--bg-main);
+            color: #f8fafc;
+            padding: 12px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 3px solid #0284c7;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+        }
+        .brand-block h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 0.4px;
+            color: #f8fafc;
+        }
+        .brand-block .subtitle {
+            font-size: 0.8rem;
+            color: #38bdf8;
+            margin-top: 2px;
+        }
+        .status-strip {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 0.78rem;
+            color: #cbd5e1;
+        }
+        .status-strip .sync-ok {
+            color: #4ade80;
+            font-weight: 700;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            padding: 9px 14px;
+            font-size: 0.84rem;
+            font-weight: 700;
+            transition: background 0.15s, transform 0.08s;
+        }
+        button:active {
+            transform: scale(0.99);
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:hover { background: var(--danger-hover); }
+        .btn-teal { background: var(--teal); color: #fff; }
+        .btn-slate { background: #475569; color: #fff; }
+
+        /* Main Container */
+        main {
+            flex: 1;
+            max-width: 1520px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 18px 22px;
+        }
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 440px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        .grid-auth {
+            display: grid;
+            grid-template-columns: 1fr 1.15fr;
+            gap: 22px;
+            align-items: start;
+        }
+        @media (max-width: 1080px) {
+            .grid-2col, .grid-auth {
+                grid-template-columns: 1fr;
+            }
+        }
+        .card {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 18px 20px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-size: 1.02rem;
+            font-weight: 800;
+            color: #1e3a8a;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .card-subtitle {
+            font-size: 0.83rem;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            line-height: 1.4;
+        }
+        .form-group {
+            margin-bottom: 11px;
+        }
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+        input[type="text"], input[type="password"], select {
+            width: 100%;
+            padding: 9px 11px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.88rem;
+            background: #fff;
+            color: #0f172a;
+        }
+        input:focus, select:focus {
+            outline: 2px solid #2563eb;
+            border-color: transparent;
+        }
+        .feedback-box {
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            margin-top: 10px;
+            background: #f8fafc;
+            border-left: 4px solid #0284c7;
+            color: #0f172a;
+            white-space: pre-line;
+        }
+        .feedback-error {
+            background: #fef2f2;
+            border-left-color: #dc2626;
+            color: #7f1d1d;
+        }
+        .feedback-success {
+            background: #f0fdf4;
+            border-left-color: #16a34a;
+            color: #14532d;
+        }
+        .map-box {
+            width: 100%;
+            height: 520px;
+            border-radius: 8px;
+            border: 2px solid #cbd5e1;
+            overflow: hidden;
+        }
+        .map-box-small {
+            width: 100%;
+            height: 270px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .tabs-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .tabs-bar button {
+            padding: 11px 20px;
+            font-size: 0.9rem;
+        }
+        .service-checks {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 12px;
+        }
+        .service-checks label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.88rem;
+            cursor: pointer;
+            margin: 0;
+        }
+        .service-checks input[type="checkbox"] {
+            width: 17px;
+            height: 17px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            margin-top: 8px;
+        }
+        th, td {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #f1f5f9;
+            font-weight: 700;
+            color: #334155;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.73rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .badge-policia { background: #0369a1; }
+        .badge-hospital { background: #0d9488; }
+        .badge-bomberos { background: #b45309; }
+        .badge-admin { background: #4f46e5; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand-block">
+        <h1>GEORUTA SOS - CENTRO DE DESPACHO PC Y GESTION DE USUARIOS</h1>
+        <div class="subtitle" id="headerActiveSession">Sesion no iniciada. Ingrese como Administrador o Usuario Operativo, o cree una cuenta.</div>
+    </div>
+    <div class="status-strip">
+        <div class="sync-ok" id="headerSyncBanner">Sincronizacion en Tiempo Real con App Movil: Conectando...</div>
+        <div id="headerNetworkInfo">Red Local PC: detectando...</div>
+    </div>
+    <div class="header-actions">
+        <button class="btn-success" onclick="forceSyncNow()">Sincronizar Ahora</button>
+        <button class="btn-primary" onclick="detectBrowserGpsLocation()">Usar GPS Preciso PC</button>
+        <button class="btn-danger hidden" id="btnLogout" onclick="logoutSession()">Cerrar Sesion</button>
+    </div>
+</header>
+
+<main>
+    <!-- ================================================================================= -->
+    <!-- PANTALLA 1: INICIO DE SESION Y CREACION DE USUARIOS (ADMIN Y AGENTES)             -->
+    <!-- ================================================================================= -->
+    <section id="viewAuth" class="grid-auth">
+        <!-- Columna Izquierda: Iniciar Sesion + Usuarios Sincronizados -->
+        <div>
+            <div class="card">
+                <div class="card-title">Inicio de Sesion (Administrador PC o Agente)</div>
+                <div class="card-subtitle">
+                    Ingrese con su numero de DPI y clave. Desde esta aplicacion web en PC puede iniciar sesion como
+                    <strong>ADMINISTRADOR</strong> para despachar ordenes y auditar agentes, o como <strong>AGENTE</strong>.
+                </div>
+
+                <div class="form-group">
+                    <label for="loginDpi">Numero de DPI:</label>
+                    <input type="text" id="loginDpi" placeholder="Ingrese el DPI del usuario" />
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Clave de Acceso:</label>
+                    <input type="text" id="loginPassword" placeholder="Clave (por defecto 1234)" />
+                </div>
+                <button class="btn-primary" style="width:100%; padding:12px;" onclick="submitLogin()">
+                    Entrar al Sistema con DPI y Clave
+                </button>
+                <div id="loginFeedback" class="feedback-box">
+                    Ingrese sus credenciales o seleccione un usuario sincronizado abajo.
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Usuarios Sincronizados en Tiempo Real (PC + App Movil)</div>
+                <div class="card-subtitle">
+                    Cualquier usuario creado en el telefono o en esta PC aparece automaticamente aqui.
+                </div>
+
+                <div class="form-group">
+                    <label for="quickUserSelect">Seleccion Rapida de Usuario Registrado:</label>
+                    <select id="quickUserSelect"></select>
+                </div>
+                <div style="display:flex; gap:8px; margin-bottom:10px;">
+                    <button class="btn-primary" style="flex:1;" onclick="loginWithSelectedQuickUser()">
+                        Iniciar Sesion con Seleccionado
+                    </button>
+                    <button class="btn-danger" onclick="deleteSelectedQuickUser()">
+                        Eliminar
+                    </button>
+                    <button class="btn-slate" onclick="clearAllUsersConfirm()">
+                        Limpiar Todo
+                    </button>
+                </div>
+
+                <div style="max-height:220px; overflow-y:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>DPI</th>
+                                <th>Nombre</th>
+                                <th>Rol / Servicio</th>
+                                <th>Estacion Asignada</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableUsersBody">
+                            <tr><td colspan="4">Sin usuarios registrados.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top:12px; padding-top:10px; border-top:1px solid #e2e8f0; display:flex; gap:8px;">
+                    <input type="text" id="manualPhoneIp" placeholder="IP del telefono en Wi-Fi (opcional, ej. 192.168.1.15)" />
+                    <button class="btn-teal" style="white-space:nowrap;" onclick="addManualPhoneIp()">Enlazar IP</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Crear Nuevo Usuario (Administrador o Agente con Estaciones Dinamicas) -->
+        <div class="card">
+            <div class="card-title">Crear Nuevo Usuario (Auto-Aprobado y Sincronizado)</div>
+            <div class="card-subtitle">
+                Cree cuentas de <strong>ADMINISTRADOR</strong> (para despachar desde la PC) o de
+                <strong>AGENTE OPERATIVO</strong> (Policia, Hospital, Bomberos) con estaciones dinamicas calculadas segun la ubicacion exacta.
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="form-group">
+                    <label for="regRole">1. Rol del Usuario:</label>
+                    <select id="regRole" onchange="onRegRoleChanged()">
+                        <option value="ADMINISTRADOR">ADMINISTRADOR (Despacho en PC)</option>
+                        <option value="AGENTE">AGENTE OPERATIVO (Policia / Hospital / Bomberos)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="regDpi">Numero de DPI (Obligatorio):</label>
+                    <input type="text" id="regDpi" placeholder="Ej. 2540112230101" />
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1.3fr 0.8fr 0.9fr; gap:10px;">
+                <div class="form-group">
+                    <label for="regFullName">Nombres y Apellidos Completos:</label>
+                    <input type="text" id="regFullName" placeholder="Nombre completo del usuario" />
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Clave de Acceso:</label>
+                    <input type="text" id="regPassword" placeholder="1234" value="1234" />
+                </div>
+                <div class="form-group">
+                    <label for="regPhones">Telefono:</label>
+                    <input type="text" id="regPhones" placeholder="5500-0000" />
+                </div>
+            </div>
+
+            <!-- Campos exclusivos cuando se crea un AGENTE -->
+            <div id="agentRegSection" class="hidden" style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #cbd5e1; margin-top:4px;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label for="regServiceType">2. Servicio de Emergencia del Agente:</label>
+                        <select id="regServiceType" onchange="refreshDynamicStationsForReg()">
+                            <option value="POLICIA">POLICIA NACIONAL CIVIL (PNC)</option>
+                            <option value="HOSPITAL">HOSPITAL Y PARAMEDICOS</option>
+                            <option value="BOMBEROS">CUERPO DE BOMBEROS</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="regNipGroup">
+                        <label for="regNip">NIP Policial (Opcional PNC):</label>
+                        <input type="text" id="regNip" placeholder="Ej. PNC-4012" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="regNearbyStationSelect">
+                        3. Estaciones Cercanas Dinamicas (Relativas a la Ubicacion Exacta Seleccionada):
+                    </label>
+                    <select id="regNearbyStationSelect" onchange="onRegStationSelected()"></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="regAddress">Nombre de la Estacion Asignada:</label>
+                    <input type="text" id="regAddress" placeholder="Estacion asignada" />
+                </div>
+
+                <div id="regLocationSummary" style="font-size:0.8rem; color:#0369a1; font-weight:700; margin-bottom:4px;">
+                    Haga clic en el mapa o use el boton GPS para fijar la ubicacion del usuario y recalcular estaciones cercanas:
+                </div>
+                <div id="mapRegister" class="map-box-small"></div>
+            </div>
+
+            <button class="btn-success" style="width:100%; padding:12px; margin-top:12px;" onclick="submitRegistration()">
+                Crear Usuario, Sincronizar e Iniciar Sesion Inmediatamente
+            </button>
+
+            <div id="regFeedback" class="feedback-box">
+                Complete los datos para registrar un Administrador o un Agente Operativo.
+            </div>
+        </div>
+    </section>
+
+    <!-- ================================================================================= -->
+    <!-- PANTALLA 2: PANEL DE ADMINISTRADOR EN PC (DESPACHO Y AUDITORIA POR DPI)           -->
+    <!-- ================================================================================= -->
+    <section id="viewAdmin" class="hidden">
+        <div class="tabs-bar">
+            <button id="tabBtnAdminDispatch" class="btn-danger" onclick="switchAdminTab('dispatch')">
+                1. Centro de Despacho de Ordenes de Emergencia
+            </button>
+            <button id="tabBtnAdminSearch" class="btn-slate" onclick="switchAdminTab('search')">
+                2. Busqueda de Agentes por DPI e Historial de Ordenes
+            </button>
+        </div>
+
+        <!-- SUB-VISTA ADMIN A: DESPACHO DE EMERGENCIAS -->
+        <div id="adminSubDispatch" class="grid-2col">
+            <div>
+                <div class="card">
+                    <div class="card-title" style="color:#991b1b;">Despacho de Ordenes desde PC</div>
+                    <div class="card-subtitle">
+                        Seleccione uno, dos o los tres servicios y haga clic en el mapa de la derecha para marcar el
+                        <strong>Punto de Llegada de la Emergencia</strong>. El sistema asigna automaticamente la estacion mas cercana de cada servicio.
+                    </div>
+
+                    <label>1. Servicios Requeridos para la Emergencia:</label>
+                    <div class="service-checks">
+                        <label>
+                            <input type="checkbox" id="chkDispatchPolicia" checked />
+                            <span>Policia Nacional Civil (Estacion mas cercana)</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" id="chkDispatchHospital" />
+                            <span>Hospital y Paramedicos (Estacion mas cercana)</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" id="chkDispatchBomberos" />
+                            <span>Cuerpo de Bomberos (Estacion mas cercana)</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dispatchDescription">2. Descripcion del Suceso o Emergencia:</label>
+                        <input type="text" id="dispatchDescription" value="Colision vehicular multiple en arteria principal" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>3. Coordenadas del Punto de Llegada (Clic en el Mapa):</label>
+                        <div id="dispatchCoordsLabel" style="font-size:0.86rem; font-weight:700; color:#b91c1c; padding:8px; background:#fef2f2; border-radius:6px;">
+                            Punto de llegada seleccionado: (14.61950, -90.51530)
+                        </div>
+                    </div>
+
+                    <button class="btn-danger" style="width:100%; padding:13px; font-size:0.92rem;" onclick="submitAdminDispatch()">
+                        DESPACHAR ORDEN DE EMERGENCIA AHORA (SINCRONIZAR CON TELEFONO)
+                    </button>
+
+                    <div id="dispatchFeedback" class="feedback-box">
+                        Listo para despachar. Seleccione el punto en el mapa y presione el boton rojo.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Unidades Operativas (Agentes) y Disponibilidad en Tiempo Real</div>
+                    <div class="card-subtitle" style="margin-bottom:8px;">
+                        Una unidad en mision activa (OCUPADA) no puede recibir una segunda ruta hasta que el Agente finalice la mision actual desde su App Movil.
+                    </div>
+                    <div id="adminUnitsSummary" style="max-height:240px; overflow-y:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Servicio</th>
+                                    <th>Agente / DPI</th>
+                                    <th>Estacion Base</th>
+                                    <th>Estado Actual</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableAdminAgentsBody">
+                                <tr><td colspan="4">Sin agentes registrados.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
+                    <div>
+                        <div class="card-title" style="margin-bottom:2px;">Mapa de Comando y Despacho (Haga Clic para Marcar el Punto de Llegada)</div>
+                        <div class="card-subtitle" style="margin-bottom:0;">
+                            Muestra estaciones (pines verdes), punto de emergencia (pin rojo), rutas viales reales (Dijkstra) y la unidad avanzando en ruta.
+                        </div>
+                    </div>
+                    <button id="btnAdminSimWalk" class="btn-primary hidden" onclick="toggleAdminMapWalkSimulation()">
+                        Simular Avance de Unidad sobre el Camino
+                    </button>
+                </div>
+                <div id="mapAdminDispatch" class="map-box"></div>
+            </div>
+        </div>
+
+        <!-- SUB-VISTA ADMIN B: BUSQUEDA POR DPI -->
+        <div id="adminSubSearch" class="grid-2col hidden">
+            <div class="card">
+                <div class="card-title" style="color:#0f766e;">Busqueda de Agentes por DPI</div>
+                <div class="card-subtitle">
+                    Consulte cualquier agente operativo por su numero de DPI para inspeccionar su estacion asignada y su historial de ordenes.
+                </div>
+
+                <div class="form-group">
+                    <label for="adminSelectAgentDpi">Seleccionar Agente Registrado:</label>
+                    <select id="adminSelectAgentDpi" onchange="onAdminQuickPickAgent()"></select>
+                </div>
+
+                <div style="display:flex; gap:8px; margin-bottom:12px;">
+                    <input type="text" id="inputSearchDpi" placeholder="Ingrese el DPI del Agente" />
+                    <button class="btn-teal" style="white-space:nowrap;" onclick="searchAgentByDpi()">Buscar DPI</button>
+                </div>
+
+                <div id="searchedAgentProfileBox" class="feedback-box">
+                    Seleccione un agente o ingrese su DPI para ver su ficha completa.
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Historial de Ordenes de Emergencia del Agente</div>
+                <div class="card-subtitle">
+                    Registro en tiempo real de todas las ordenes despachadas a la unidad consultada.
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Orden</th>
+                            <th>Estado</th>
+                            <th>Descripcion</th>
+                            <th>Coordenadas Llegada</th>
+                            <th>Control Operativo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableAgentAuditOrders">
+                        <tr><td colspan="5">Realice una busqueda por DPI para listar sus ordenes.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================================================================================= -->
+    <!-- PANTALLA 3: VISTA OPERATIVA DEL USUARIO / AGENTE (MAPA PERMANENTE DE ESTACION)    -->
+    <!-- ================================================================================= -->
+    <section id="viewAgent" class="grid-2col hidden">
+        <div>
+            <div class="card">
+                <div id="agentServiceBadge" style="background:#0369a1; color:#fff; padding:12px; border-radius:6px; font-weight:800; font-size:0.95rem; margin-bottom:12px;">
+                    UNIDAD RECONOCIDA: POLICIA NACIONAL CIVIL
+                </div>
+
+                <div class="card-title">Estado Operativo de la Unidad</div>
+                <div id="agentOrderStatusBox" class="feedback-box" style="margin-bottom:12px;">
+                    SIN SUCESOS ACTIVOS - Su estacion asignada se muestra permanentemente en el mapa de la derecha.
+                </div>
+
+                <button id="btnAgentSimWalk" class="btn-primary hidden" style="width:100%; padding:12px; margin-bottom:8px;" onclick="toggleAgentMapWalkSimulation()">
+                    Simular Recorrido de Unidad sobre el Camino
+                </button>
+
+                <button id="btnAgentCompleteOrder" class="btn-success hidden" style="width:100%; padding:12px; margin-bottom:12px;" onclick="completeActiveAgentOrder()">
+                    Finalizar Mision Actual (Exclusivo del Usuario Operativo)
+                </button>
+
+                <div class="card-title" style="margin-top:8px;">Ficha de Mi Perfil y Estacion Asignada</div>
+                <div id="agentProfileDetailsBox" class="feedback-box" style="background:#f8fafc;">
+                    Cargando perfil...
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Mapa Permanente de Mi Estacion y Ordenes de Emergencia</div>
+            <div class="card-subtitle" id="agentMapSubtitle">
+                Visualizando la ubicacion de su estacion asignada. Cuando ingrese una orden de emergencia, el destino y la ruta optima de Dijkstra se dibujan directamente sobre este mismo mapa.
+            </div>
+            <div id="mapAgentWorkspace" class="map-box"></div>
+        </div>
+    </section>
+</main>
+
+<script>
+    // Estado Global
+    let allUsers = [];
+    let allOrders = [];
+    let loggedInUser = null;
+    let currentUserPosition = { lat: 14.6277121, lng: -90.5602439 };
+    let currentDynamicStations = [];
+    let selectedStationOption = null;
+    let selectedDispatchDest = { lat: 14.6195031, lng: -90.5153018 };
+    let activeAgentOrderId = null;
+    let renderedAgentOrderKey = "";
+
+    // Instancias de Mapas Leaflet
+    let mapRegister = null;
+    let regUserMarker = null;
+    let regStationMarker = null;
+
+    let mapAdmin = null;
+    let adminDestMarker = null;
+    let adminStationMarkers = [];
+    let adminRoutePolylines = [];
+    let adminMovingUnitMarkers = [];
+    let adminDispatchedRoutesData = [];
+    let adminWalkTimer = null;
+
+    let mapAgent = null;
+    let agentStationMarker = null;
+    let agentDestMarker = null;
+    let agentRoutePolyline = null;
+    let agentMovingUnitMarker = null;
+    let agentCurrentWalkPoints = [];
+    let agentWalkIndex = 0;
+    let agentWalkTimer = null;
+
+    function createColoredPinIcon(hexColor) {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">
+            <path d="M14 1C6.8 1 1 6.8 1 14c0 9.6 13 24 13 24s13-14.4 13-24C27 6.8 21.2 1 14 1z" fill="${hexColor}" stroke="#0f172a" stroke-width="2"/>
+            <circle cx="14" cy="14" r="5.5" fill="#ffffff"/>
+        </svg>`;
+        return L.divIcon({
+            html: svg,
+            className: "",
+            iconSize: [28, 40],
+            iconAnchor: [14, 39],
+            popupAnchor: [0, -34]
+        });
+    }
+
+    const ICON_GREEN_STATION = createColoredPinIcon("#16a34a");
+    const ICON_RED_EMERGENCY = createColoredPinIcon("#dc2626");
+    const ICON_BLUE_USER = createColoredPinIcon("#0284c7");
+
+    function createMovingUnitIcon() {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
+            <circle cx="17" cy="17" r="15" fill="#0284c7" stroke="#ffffff" stroke-width="3"/>
+            <circle cx="17" cy="12" r="4.2" fill="#ffffff"/>
+            <path d="M9.5 25c0-4.2 3.4-7 7.5-7s7.5 2.8 7.5 7" fill="#ffffff"/>
+        </svg>`;
+        return L.divIcon({
+            html: svg,
+            className: "",
+            iconSize: [34, 34],
+            iconAnchor: [17, 17],
+            popupAnchor: [0, -17]
+        });
+    }
+    const ICON_MOVING_UNIT = createMovingUnitIcon();
+
+    window.addEventListener("DOMContentLoaded", () => {
+        initMaps();
+        onRegRoleChanged();
+        refreshDynamicStationsForReg();
+        fetchStateLoop();
+        setInterval(fetchStateLoop, 1800);
+        detectBrowserGpsLocation(true);
+    });
+
+    function initMaps() {
+        // 1. Mapa de Registro
+        mapRegister = L.map("mapRegister").setView([currentUserPosition.lat, currentUserPosition.lng], 14);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "OpenStreetMap"
+        }).addTo(mapRegister);
+
+        regUserMarker = L.marker([currentUserPosition.lat, currentUserPosition.lng], { icon: ICON_BLUE_USER })
+            .addTo(mapRegister)
+            .bindPopup("Ubicacion Exacta del Usuario");
+
+        mapRegister.on("click", (e) => {
+            currentUserPosition = { lat: e.latlng.lat, lng: e.latlng.lng };
+            regUserMarker.setLatLng([currentUserPosition.lat, currentUserPosition.lng]);
+            document.getElementById("regLocationSummary").textContent =
+                `Ubicacion exacta del usuario fijada en: (${currentUserPosition.lat.toFixed(5)}, ${currentUserPosition.lng.toFixed(5)})`;
+            refreshDynamicStationsForReg();
+        });
+
+        // 2. Mapa de Despacho del Administrador
+        mapAdmin = L.map("mapAdminDispatch").setView([selectedDispatchDest.lat, selectedDispatchDest.lng], 13);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "OpenStreetMap"
+        }).addTo(mapAdmin);
+
+        adminDestMarker = L.marker([selectedDispatchDest.lat, selectedDispatchDest.lng], { icon: ICON_RED_EMERGENCY })
+            .addTo(mapAdmin)
+            .bindPopup("PUNTO DE LLEGADA DE EMERGENCIA");
+
+        mapAdmin.on("click", (e) => {
+            selectedDispatchDest = { lat: e.latlng.lat, lng: e.latlng.lng };
+            adminDestMarker.setLatLng([selectedDispatchDest.lat, selectedDispatchDest.lng]).openPopup();
+            document.getElementById("dispatchCoordsLabel").textContent =
+                `Punto de llegada seleccionado: (${selectedDispatchDest.lat.toFixed(5)}, ${selectedDispatchDest.lng.toFixed(5)})`;
+        });
+
+        // 3. Mapa Permanente del Agente
+        mapAgent = L.map("mapAgentWorkspace").setView([currentUserPosition.lat, currentUserPosition.lng], 14);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "OpenStreetMap"
+        }).addTo(mapAgent);
+    }
+
+    function detectBrowserGpsLocation(silent = false) {
+        if (!navigator.geolocation) {
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                currentUserPosition = {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude
+                };
+                if (regUserMarker && mapRegister) {
+                    regUserMarker.setLatLng([currentUserPosition.lat, currentUserPosition.lng]);
+                    mapRegister.setView([currentUserPosition.lat, currentUserPosition.lng], 14);
+                }
+                document.getElementById("regLocationSummary").textContent =
+                    `Ubicacion GPS exacta detectada: (${currentUserPosition.lat.toFixed(5)}, ${currentUserPosition.lng.toFixed(5)})`;
+                refreshDynamicStationsForReg();
+            },
+            () => {
+                if (!silent) {
+                    alert("No se pudo obtener el GPS del navegador. Puede hacer clic directamente en el mapa para elegir su ubicacion.");
+                }
+            },
+            { enableHighAccuracy: true, timeout: 5000 }
+        );
+    }
+
+    function onRegRoleChanged() {
+        const role = document.getElementById("regRole").value;
+        const section = document.getElementById("agentRegSection");
+        if (role === "AGENTE") {
+            section.classList.remove("hidden");
+            setTimeout(() => mapRegister && mapRegister.invalidateSize(), 120);
+            refreshDynamicStationsForReg();
+        } else {
+            section.classList.add("hidden");
+        }
+    }
+
+    async function refreshDynamicStationsForReg() {
+        const service = document.getElementById("regServiceType").value;
+        const nipGroup = document.getElementById("regNipGroup");
+        nipGroup.style.display = service === "POLICIA" ? "block" : "none";
+
+        try {
+            const url = `/api/nearby_stations?service=${encodeURIComponent(service)}&lat=${currentUserPosition.lat}&lng=${currentUserPosition.lng}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.ok && Array.isArray(data.stations)) {
+                currentDynamicStations = data.stations;
+                const sel = document.getElementById("regNearbyStationSelect");
+                sel.innerHTML = "";
+                currentDynamicStations.forEach((st, idx) => {
+                    const opt = document.createElement("option");
+                    opt.value = String(idx);
+                    opt.textContent = `${st.name} [${st.latitude.toFixed(5)}, ${st.longitude.toFixed(5)}] (a ${st.distanceKm.toFixed(2)} km)`;
+                    sel.appendChild(opt);
+                });
+                onRegStationSelected();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function onRegStationSelected() {
+        const idx = parseInt(document.getElementById("regNearbyStationSelect").value || "0", 10);
+        if (idx >= 0 && idx < currentDynamicStations.length) {
+            selectedStationOption = currentDynamicStations[idx];
+            document.getElementById("regAddress").value = selectedStationOption.name;
+            if (mapRegister) {
+                if (regStationMarker) {
+                    regStationMarker.setLatLng([selectedStationOption.latitude, selectedStationOption.longitude]);
+                    regStationMarker.setPopupContent(`ESTACION: ${selectedStationOption.name}`);
+                } else {
+                    regStationMarker = L.marker(
+                        [selectedStationOption.latitude, selectedStationOption.longitude],
+                        { icon: ICON_GREEN_STATION }
+                    ).addTo(mapRegister).bindPopup(`ESTACION: ${selectedStationOption.name}`);
+                }
+                const bounds = L.latLngBounds([
+                    [currentUserPosition.lat, currentUserPosition.lng],
+                    [selectedStationOption.latitude, selectedStationOption.longitude]
+                ]);
+                mapRegister.fitBounds(bounds, { padding: [30, 30] });
+            }
+        }
+    }
+
+    async function fetchStateLoop() {
+        try {
+            const res = await fetch("/api/state");
+            const data = await res.json();
+            allUsers = data.users || [];
+            allOrders = data.orders || [];
+
+            const peersText = (data.discoveredPeers && data.discoveredPeers.length > 0)
+                ? `Telefonos Enlazados: ${data.discoveredPeers.join(", ")}`
+                : (data.adbBridgeActive ? "Puente USB ADB Activo + Nube Activa" : "Nube + Red Local Activa");
+            document.getElementById("headerSyncBanner").textContent =
+                `Sincronizacion Tiempo Real Activa | ${peersText} | Usuarios: ${allUsers.length} | Ordenes: ${allOrders.length}`;
+            document.getElementById("headerNetworkInfo").textContent =
+                `Servidor Web PC: http://localhost:${data.webPort} | IP Red Local PC: ${data.lanIp}:${data.p2pPort}`;
+
+            renderUsersTablesAndSelectors();
+            if (loggedInUser && loggedInUser.role === "AGENTE") {
+                updateAgentWorkspaceLive();
+            }
+        } catch (err) {
+            document.getElementById("headerSyncBanner").textContent = "Reconectando con el servidor local...";
+        }
+    }
+
+    function renderUsersTablesAndSelectors() {
+        const quickSel = document.getElementById("quickUserSelect");
+        const prevQuickDpi = quickSel.value;
+        quickSel.innerHTML = "";
+
+        const tbody = document.getElementById("tableUsersBody");
+        tbody.innerHTML = "";
+
+        const adminTbody = document.getElementById("tableAdminAgentsBody");
+        adminTbody.innerHTML = "";
+
+        const adminAgentSel = document.getElementById("adminSelectAgentDpi");
+        const prevAgentDpi = adminAgentSel.value;
+        adminAgentSel.innerHTML = `<option value="">-- Seleccione un Agente Operativo --</option>`;
+
+        if (allUsers.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4">No hay usuarios creados todavia.</td></tr>`;
+        }
+
+        let agentCount = 0;
+        allUsers.forEach((u) => {
+            const opt = document.createElement("option");
+            opt.value = u.dpi;
+            const roleLabel = u.role === "AGENTE" ? `AGENTE (${u.serviceType})` : "ADMINISTRADOR";
+            opt.textContent = `DPI: ${u.dpi} | ${u.fullName} - ${roleLabel}`;
+            quickSel.appendChild(opt);
+
+            const badgeClass = u.role === "ADMINISTRADOR" ? "badge-admin"
+                : (u.serviceType === "HOSPITAL" ? "badge-hospital"
+                : (u.serviceType === "BOMBEROS" ? "badge-bomberos" : "badge-policia"));
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><strong>${u.dpi}</strong></td>
+                <td>${u.fullName}</td>
+                <td><span class="badge ${badgeClass}">${roleLabel}</span></td>
+                <td>${u.address}</td>
+            `;
+            tbody.appendChild(tr);
+
+            if (u.role === "AGENTE") {
+                agentCount++;
+                const activeOrd = allOrders.find(
+                    (o) => (o.assignedAgentDpi === u.dpi || o.assignedAgentId === u.id)
+                        && (o.status === "ASSIGNED" || o.status === "IN_PROGRESS")
+                );
+                const statusBadgeHtml = activeOrd
+                    ? `<span class="badge" style="background:#dc2626;">OCUPADO (Orden #${activeOrd.id})</span>`
+                    : `<span class="badge" style="background:#16a34a;">DISPONIBLE</span>`;
+
+                const atr = document.createElement("tr");
+                atr.innerHTML = `
+                    <td><span class="badge ${badgeClass}">${u.serviceType}</span></td>
+                    <td><strong>${u.fullName}</strong><br/><small>DPI: ${u.dpi}</small></td>
+                    <td>${u.address}<br/><small>(${u.stationLat.toFixed(4)}, ${u.stationLng.toFixed(4)})</small></td>
+                    <td>${statusBadgeHtml}</td>
+                `;
+                adminTbody.appendChild(atr);
+
+                const aopt = document.createElement("option");
+                aopt.value = u.dpi;
+                aopt.textContent = `[${u.serviceType}] DPI: ${u.dpi} - ${u.fullName} (${activeOrd ? "OCUPADO EN MISION" : "DISPONIBLE"})`;
+                adminAgentSel.appendChild(aopt);
+            }
+        });
+
+        if (agentCount === 0) {
+            adminTbody.innerHTML = `<tr><td colspan="4">No hay agentes operativos registrados.</td></tr>`;
+        }
+
+        if (prevQuickDpi) quickSel.value = prevQuickDpi;
+        if (prevAgentDpi) adminAgentSel.value = prevAgentDpi;
+
+        renderAdminStationPins();
+    }
+
+    function renderAdminStationPins() {
+        if (!mapAdmin) return;
+        adminStationMarkers.forEach((m) => mapAdmin.removeLayer(m));
+        adminStationMarkers = [];
+
+        allUsers.filter((u) => u.role === "AGENTE").forEach((ag) => {
+            const m = L.marker([ag.stationLat, ag.stationLng], { icon: ICON_GREEN_STATION })
+                .addTo(mapAdmin)
+                .bindPopup(`<strong>ESTACION ${ag.serviceType}:</strong> ${ag.address}<br/>Agente: ${ag.fullName} (DPI: ${ag.dpi})`);
+            adminStationMarkers.push(m);
+        });
+    }
+
+    async function submitRegistration() {
+        const role = document.getElementById("regRole").value;
+        const dpi = document.getElementById("regDpi").value.trim();
+        const fullName = document.getElementById("regFullName").value.trim();
+        const password = document.getElementById("regPassword").value.trim() || "1234";
+        const phones = document.getElementById("regPhones").value.trim() || "5500-0000";
+        const serviceType = role === "AGENTE" ? document.getElementById("regServiceType").value : "ADMINISTRACION";
+        const nip = document.getElementById("regNip").value.trim();
+        const address = role === "AGENTE"
+            ? document.getElementById("regAddress").value.trim()
+            : "Centro de Comando y Despacho PC";
+
+        const stationLat = (role === "AGENTE" && selectedStationOption)
+            ? selectedStationOption.latitude
+            : currentUserPosition.lat;
+        const stationLng = (role === "AGENTE" && selectedStationOption)
+            ? selectedStationOption.longitude
+            : currentUserPosition.lng;
+        const stationNodeId = (role === "AGENTE" && selectedStationOption)
+            ? selectedStationOption.nodeId
+            : 0;
+
+        const fb = document.getElementById("regFeedback");
+        try {
+            const res = await fetch("/api/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fullName, dpi, password, phones, role, serviceType, nip,
+                    address, stationLat, stationLng, stationNodeId
+                })
+            });
+            const data = await res.json();
+            if (!data.ok) {
+                fb.className = "feedback-box feedback-error";
+                fb.textContent = data.error || "Error al crear el usuario.";
+                return;
+            }
+            fb.className = "feedback-box feedback-success";
+            fb.textContent = `Usuario ${data.user.fullName} (${data.user.role}) creado y sincronizado. Iniciando sesion...`;
+            await fetchStateLoop();
+            applyLoggedInUser(data.user);
+        } catch (err) {
+            fb.className = "feedback-box feedback-error";
+            fb.textContent = "Error de red al registrar usuario.";
+        }
+    }
+
+    async function submitLogin() {
+        const dpi = document.getElementById("loginDpi").value.trim();
+        const password = document.getElementById("loginPassword").value.trim();
+        const fb = document.getElementById("loginFeedback");
+        try {
+            const res = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ dpi, password })
+            });
+            const data = await res.json();
+            if (!data.ok) {
+                fb.className = "feedback-box feedback-error";
+                fb.textContent = data.error || "Credenciales invalidas.";
+                return;
+            }
+            fb.className = "feedback-box feedback-success";
+            fb.textContent = `Bienvenido ${data.user.fullName}.`;
+            applyLoggedInUser(data.user);
+        } catch (err) {
+            fb.className = "feedback-box feedback-error";
+            fb.textContent = "Error al conectar con el servidor.";
+        }
+    }
+
+    function loginWithSelectedQuickUser() {
+        const dpi = document.getElementById("quickUserSelect").value;
+        const found = allUsers.find((u) => u.dpi === dpi);
+        if (found) {
+            document.getElementById("loginDpi").value = found.dpi;
+            document.getElementById("loginPassword").value = found.password;
+            applyLoggedInUser(found);
+        }
+    }
+
+    async function deleteSelectedQuickUser() {
+        const dpi = document.getElementById("quickUserSelect").value;
+        if (!dpi) return;
+        await fetch("/api/delete_user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dpi })
+        });
+        await fetchStateLoop();
+    }
+
+    async function clearAllUsersConfirm() {
+        await fetch("/api/clear_users", { method: "POST" });
+        await fetchStateLoop();
+    }
+
+    async function addManualPhoneIp() {
+        const ip = document.getElementById("manualPhoneIp").value.trim();
+        if (!ip) return;
+        await fetch("/api/add_peer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ip })
+        });
+        await fetchStateLoop();
+    }
+
+    function applyLoggedInUser(user) {
+        loggedInUser = user;
+        const btnLogout = document.getElementById("btnLogout");
+        const viewAuth = document.getElementById("viewAuth");
+        const viewAdmin = document.getElementById("viewAdmin");
+        const viewAgent = document.getElementById("viewAgent");
+
+        if (!user) {
+            btnLogout.classList.add("hidden");
+            viewAuth.classList.remove("hidden");
+            viewAdmin.classList.add("hidden");
+            viewAgent.classList.add("hidden");
+            document.getElementById("headerActiveSession").textContent =
+                "Sesion no iniciada. Ingrese como Administrador o Usuario Operativo, o cree una cuenta.";
+            setTimeout(() => mapRegister && mapRegister.invalidateSize(), 120);
+            return;
+        }
+
+        btnLogout.classList.remove("hidden");
+        viewAuth.classList.add("hidden");
+
+        if (user.role === "ADMINISTRADOR" || user.role === "SUPER_USUARIO") {
+            document.getElementById("headerActiveSession").textContent =
+                `SESION ACTIVA ADMINISTRADOR EN PC: ${user.fullName} | DPI: ${user.dpi}`;
+            viewAdmin.classList.remove("hidden");
+            viewAgent.classList.add("hidden");
+            switchAdminTab("dispatch");
+            setTimeout(() => {
+                if (mapAdmin) {
+                    mapAdmin.invalidateSize();
+                    renderAdminStationPins();
+                }
+            }, 150);
+        } else {
+            document.getElementById("headerActiveSession").textContent =
+                `SESION ACTIVA AGENTE (${user.serviceType}): ${user.fullName} | DPI: ${user.dpi} | Estacion: ${user.address}`;
+            viewAdmin.classList.add("hidden");
+            viewAgent.classList.remove("hidden");
+            renderedAgentOrderKey = "";
+            setTimeout(() => {
+                if (mapAgent) {
+                    mapAgent.invalidateSize();
+                    updateAgentWorkspaceLive(true);
+                }
+            }, 150);
+        }
+    }
+
+    function logoutSession() {
+        applyLoggedInUser(null);
+    }
+
+    function switchAdminTab(tab) {
+        const subDispatch = document.getElementById("adminSubDispatch");
+        const subSearch = document.getElementById("adminSubSearch");
+        const btnD = document.getElementById("tabBtnAdminDispatch");
+        const btnS = document.getElementById("tabBtnAdminSearch");
+
+        if (tab === "dispatch") {
+            subDispatch.classList.remove("hidden");
+            subSearch.classList.add("hidden");
+            btnD.className = "btn-danger";
+            btnS.className = "btn-slate";
+            setTimeout(() => mapAdmin && mapAdmin.invalidateSize(), 120);
+        } else {
+            subDispatch.classList.add("hidden");
+            subSearch.classList.remove("hidden");
+            btnD.className = "btn-slate";
+            btnS.className = "btn-teal";
+        }
+    }
+
+    async function submitAdminDispatch() {
+        const services = [];
+        if (document.getElementById("chkDispatchPolicia").checked) services.push("POLICIA");
+        if (document.getElementById("chkDispatchHospital").checked) services.push("HOSPITAL");
+        if (document.getElementById("chkDispatchBomberos").checked) services.push("BOMBEROS");
+
+        const description = document.getElementById("dispatchDescription").value.trim();
+        const fb = document.getElementById("dispatchFeedback");
+
+        try {
+            const res = await fetch("/api/dispatch", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    adminId: loggedInUser ? loggedInUser.id : 1,
+                    services,
+                    destinationLat: selectedDispatchDest.lat,
+                    destinationLng: selectedDispatchDest.lng,
+                    description
+                })
+            });
+            const data = await res.json();
+            if (!data.ok) {
+                fb.className = "feedback-box feedback-error";
+                fb.textContent = data.error || "No se pudo despachar la orden.";
+                return;
+            }
+
+            // Dibujar las rutas despachadas en el mapa del Administrador
+            stopAdminMapWalkSimulation();
+            adminRoutePolylines.forEach((p) => mapAdmin.removeLayer(p));
+            adminRoutePolylines = [];
+            adminMovingUnitMarkers.forEach((m) => mapAdmin.removeLayer(m));
+            adminMovingUnitMarkers = [];
+            adminDispatchedRoutesData = [];
+
+            const lines = ["ORDENES DESPACHADAS Y SINCRONIZADAS CON LA APP MOVIL:"];
+            const boundsPoints = [[selectedDispatchDest.lat, selectedDispatchDest.lng]];
+
+            data.dispatched.forEach((d) => {
+                lines.push(
+                    `- [${d.serviceType}] Orden #${d.orderId} -> ${d.agentName} (DPI: ${d.agentDpi}) | Estacion: ${d.stationName} (a ${d.distanceKm} km)`
+                );
+                if (Array.isArray(d.polyline) && d.polyline.length >= 2) {
+                    const denseLatLngs = densifyLatLngArray(d.polyline.map((pt) => [pt.lat, pt.lng]), 0.00045);
+                    denseLatLngs.forEach((ll) => boundsPoints.push(ll));
+                    const color = d.serviceType === "HOSPITAL" ? "#0d9488"
+                        : (d.serviceType === "BOMBEROS" ? "#ea580c" : "#1d4ed8");
+                    const poly = L.polyline(denseLatLngs, { color, weight: 6, opacity: 0.9 }).addTo(mapAdmin);
+                    adminRoutePolylines.push(poly);
+
+                    const unitMarker = L.marker(denseLatLngs[0], { icon: ICON_MOVING_UNIT })
+                        .addTo(mapAdmin)
+                        .bindPopup(`<strong>UNIDAD EN CAMINO (${d.serviceType}):</strong><br/>${d.agentName}`);
+                    adminMovingUnitMarkers.push(unitMarker);
+                    adminDispatchedRoutesData.push({
+                        marker: unitMarker,
+                        polylineLayer: poly,
+                        points: denseLatLngs,
+                        stepIndex: 0
+                    });
+                }
+            });
+
+            const btnAdminSim = document.getElementById("btnAdminSimWalk");
+            if (adminDispatchedRoutesData.length > 0) {
+                btnAdminSim.classList.remove("hidden");
+            } else {
+                btnAdminSim.classList.add("hidden");
+            }
+
+            if (data.busyServices && data.busyServices.length > 0) {
+                lines.push(
+                    `Aviso de Validacion: No se asigno segunda ruta a [${data.busyServices.join(", ")}] porque sus unidades ya estan en una mision activa.`
+                );
+            }
+            if (data.missingServices && data.missingServices.length > 0) {
+                lines.push(`Aviso: Sin unidades registradas para: ${data.missingServices.join(", ")}`);
+            }
+
+            fb.className = "feedback-box feedback-success";
+            fb.textContent = lines.join("\n");
+
+            if (boundsPoints.length > 1) {
+                mapAdmin.fitBounds(L.latLngBounds(boundsPoints), { padding: [40, 40] });
+            }
+            await fetchStateLoop();
+        } catch (err) {
+            fb.className = "feedback-box feedback-error";
+            fb.textContent = "Error al despachar la emergencia.";
+        }
+    }
+
+    function onAdminQuickPickAgent() {
+        const dpi = document.getElementById("adminSelectAgentDpi").value;
+        if (dpi) {
+            document.getElementById("inputSearchDpi").value = dpi;
+            searchAgentByDpi();
+        }
+    }
+
+    async function searchAgentByDpi() {
+        const dpi = document.getElementById("inputSearchDpi").value.trim();
+        const profileBox = document.getElementById("searchedAgentProfileBox");
+        const tbody = document.getElementById("tableAgentAuditOrders");
+        if (!dpi) return;
+
+        try {
+            const res = await fetch(`/api/search_dpi?dpi=${encodeURIComponent(dpi)}`);
+            const data = await res.json();
+            if (!data.ok) {
+                profileBox.className = "feedback-box feedback-error";
+                profileBox.textContent = data.error || "Agente no encontrado.";
+                tbody.innerHTML = `<tr><td colspan="5">Sin resultados.</td></tr>`;
+                return;
+            }
+            const ag = data.agent;
+            profileBox.className = "feedback-box feedback-success";
+            profileBox.textContent =
+                `FICHA DEL AGENTE LOCALIZADO:\n` +
+                `- Nombre Completo: ${ag.fullName} (ID #${ag.id})\n` +
+                `- DPI: ${ag.dpi} | Telefono: ${ag.phones}\n` +
+                `- Rol: ${ag.role} | Servicio: ${ag.serviceType}\n` +
+                `- NIP Policial: ${ag.nip} | Estado: ${ag.approvalStatus}\n` +
+                `- Estacion Asignada: ${ag.address} (${ag.stationLat.toFixed(5)}, ${ag.stationLng.toFixed(5)})`;
+
+            tbody.innerHTML = "";
+            if (!data.orders || data.orders.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5">El agente no registra ordenes de emergencia.</td></tr>`;
+                return;
+            }
+            data.orders.forEach((o) => {
+                const tr = document.createElement("tr");
+                const isDone = o.status === "COMPLETED";
+                const controlText = isDone
+                    ? `<span class="badge" style="background:#16a34a;">Finalizada por el Agente</span>`
+                    : `<span class="badge" style="background:#b45309;">En Curso (Solo el Agente finaliza en App Movil)</span>`;
+                tr.innerHTML = `
+                    <td><strong>#${o.id}</strong></td>
+                    <td>${o.status}</td>
+                    <td>${o.description}</td>
+                    <td>(${o.destinationLat.toFixed(5)}, ${o.destinationLng.toFixed(5)})</td>
+                    <td>${controlText}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (err) {
+            profileBox.className = "feedback-box feedback-error";
+            profileBox.textContent = "Error al consultar el DPI.";
+        }
+    }
+
+    async function completeOrderById(orderId) {
+        await fetch("/api/complete_order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId })
+        });
+        await searchAgentByDpi();
+        await fetchStateLoop();
+    }
+
+    // =================================================================================
+    // VISTA DEL AGENTE CON MAPA PERMANENTE DE SU ESTACION Y DIBUJO DE ORDEN ACTIVA
+    // =================================================================================
+    async function updateAgentWorkspaceLive(forceRedraw = false) {
+        if (!loggedInUser) return;
+
+        const badge = document.getElementById("agentServiceBadge");
+        const bg = loggedInUser.serviceType === "HOSPITAL" ? "#0d9488"
+            : (loggedInUser.serviceType === "BOMBEROS" ? "#b45309" : "#0369a1");
+        badge.style.background = bg;
+        badge.textContent = `UNIDAD RECONOCIDA: ${loggedInUser.serviceType} | ${loggedInUser.fullName} (DPI: ${loggedInUser.dpi})`;
+
+        document.getElementById("agentProfileDetailsBox").textContent =
+            `Nombre Completo: ${loggedInUser.fullName}\n` +
+            `DPI: ${loggedInUser.dpi}\n` +
+            `Servicio de Emergencia: ${loggedInUser.serviceType}\n` +
+            `Telefono: ${loggedInUser.phones}\n` +
+            `Estacion Asignada: ${loggedInUser.address}\n` +
+            `Coordenadas de Estacion: (${loggedInUser.stationLat.toFixed(5)}, ${loggedInUser.stationLng.toFixed(5)})`;
+
+        // Siempre mostrar el marcador de su estacion en el mapa existente
+        if (mapAgent) {
+            if (!agentStationMarker) {
+                agentStationMarker = L.marker(
+                    [loggedInUser.stationLat, loggedInUser.stationLng],
+                    { icon: ICON_GREEN_STATION }
+                ).addTo(mapAgent);
+            } else {
+                agentStationMarker.setLatLng([loggedInUser.stationLat, loggedInUser.stationLng]);
+            }
+            agentStationMarker.bindPopup(`<strong>MI ESTACION ASIGNADA:</strong><br/>${loggedInUser.address}`);
+        }
+
+        // Buscar si tiene una orden activa (ASSIGNED o IN_PROGRESS)
+        const activeOrder = allOrders.find(
+            (o) => (o.assignedAgentDpi === loggedInUser.dpi || o.assignedAgentId === loggedInUser.id)
+                && (o.status === "ASSIGNED" || o.status === "IN_PROGRESS")
+        );
+
+        const statusBox = document.getElementById("agentOrderStatusBox");
+        const btnComplete = document.getElementById("btnAgentCompleteOrder");
+        const btnSimWalk = document.getElementById("btnAgentSimWalk");
+
+        if (!activeOrder) {
+            stopAgentMapWalkSimulation();
+            activeAgentOrderId = null;
+            btnComplete.classList.add("hidden");
+            btnSimWalk.classList.add("hidden");
+            statusBox.className = "feedback-box";
+            statusBox.textContent =
+                `SIN SUCESOS ACTIVOS\nSu estacion asignada (${loggedInUser.address}) se muestra en el mapa. Cuando ingrese una orden, se dibujara en este mismo mapa.`;
+
+            if (agentDestMarker && mapAgent) {
+                mapAgent.removeLayer(agentDestMarker);
+                agentDestMarker = null;
+            }
+            if (agentRoutePolyline && mapAgent) {
+                mapAgent.removeLayer(agentRoutePolyline);
+                agentRoutePolyline = null;
+            }
+            if (agentMovingUnitMarker && mapAgent) {
+                mapAgent.removeLayer(agentMovingUnitMarker);
+                agentMovingUnitMarker = null;
+            }
+            if (forceRedraw && mapAgent) {
+                mapAgent.setView([loggedInUser.stationLat, loggedInUser.stationLng], 15);
+                agentStationMarker.openPopup();
+            }
+        } else {
+            activeAgentOrderId = activeOrder.id;
+            btnComplete.classList.remove("hidden");
+            btnSimWalk.classList.remove("hidden");
+            statusBox.className = "feedback-box feedback-error";
+            statusBox.textContent =
+                `ORDEN DE EMERGENCIA ACTIVA #${activeOrder.id}\n` +
+                `Suceso: ${activeOrder.description}\n` +
+                `Destino: (${activeOrder.destinationLat.toFixed(5)}, ${activeOrder.destinationLng.toFixed(5)})`;
+
+            const orderKey = `${activeOrder.id}_${activeOrder.destinationLat}_${activeOrder.destinationLng}`;
+            if (forceRedraw || renderedAgentOrderKey !== orderKey) {
+                renderedAgentOrderKey = orderKey;
+                await drawActiveOrderOnExistingAgentMap(activeOrder);
+            }
+        }
+    }
+
+    function densifyLatLngArray(latlngs, maxDegStep = 0.00045) {
+        if (!latlngs || latlngs.length < 2) return latlngs || [];
+        const out = [];
+        for (let i = 0; i < latlngs.length - 1; i++) {
+            const a = latlngs[i];
+            const b = latlngs[i + 1];
+            out.push(a);
+            const dLat = b[0] - a[0];
+            const dLng = b[1] - a[1];
+            const dist = Math.hypot(dLat, dLng);
+            if (dist > maxDegStep) {
+                const steps = Math.min(30, Math.ceil(dist / maxDegStep));
+                for (let s = 1; s < steps; s++) {
+                    const t = s / steps;
+                    out.push([a[0] + dLat * t, a[1] + dLng * t]);
+                }
+            }
+        }
+        out.push(latlngs[latlngs.length - 1]);
+        return out;
+    }
+
+    function toggleAdminMapWalkSimulation() {
+        if (adminWalkTimer) {
+            stopAdminMapWalkSimulation();
+            return;
+        }
+        if (adminDispatchedRoutesData.length === 0) return;
+        const btn = document.getElementById("btnAdminSimWalk");
+        btn.textContent = "Pausar Avance de Unidad sobre el Camino";
+        btn.className = "btn-danger";
+
+        adminWalkTimer = setInterval(() => {
+            let anyMoved = false;
+            adminDispatchedRoutesData.forEach((item) => {
+                if (item.stepIndex < item.points.length - 1) {
+                    item.stepIndex++;
+                    const pos = item.points[item.stepIndex];
+                    item.marker.setLatLng(pos);
+                    item.polylineLayer.setLatLngs(item.points.slice(item.stepIndex));
+                    anyMoved = true;
+                }
+            });
+            if (!anyMoved) {
+                stopAdminMapWalkSimulation();
+            }
+        }, 350);
+    }
+
+    function stopAdminMapWalkSimulation() {
+        if (adminWalkTimer) {
+            clearInterval(adminWalkTimer);
+            adminWalkTimer = null;
+        }
+        const btn = document.getElementById("btnAdminSimWalk");
+        if (btn) {
+            btn.textContent = "Simular Avance de Unidad sobre el Camino";
+            btn.className = "btn-primary";
+        }
+    }
+
+    function toggleAgentMapWalkSimulation() {
+        if (agentWalkTimer) {
+            stopAgentMapWalkSimulation();
+            return;
+        }
+        if (!agentCurrentWalkPoints || agentCurrentWalkPoints.length < 2) return;
+        const btn = document.getElementById("btnAgentSimWalk");
+        btn.textContent = "Pausar Recorrido sobre el Camino";
+        btn.className = "btn-danger";
+
+        agentWalkTimer = setInterval(() => {
+            if (agentWalkIndex < agentCurrentWalkPoints.length - 1) {
+                agentWalkIndex++;
+                const pos = agentCurrentWalkPoints[agentWalkIndex];
+                if (agentMovingUnitMarker) {
+                    agentMovingUnitMarker.setLatLng(pos);
+                }
+                if (agentRoutePolyline) {
+                    agentRoutePolyline.setLatLngs(agentCurrentWalkPoints.slice(agentWalkIndex));
+                }
+            } else {
+                stopAgentMapWalkSimulation();
+                document.getElementById("agentOrderStatusBox").textContent =
+                    "UNIDAD EN EL PUNTO DE EMERGENCIA. Presione 'Finalizar Mision Actual' para concluir.";
+            }
+        }, 350);
+    }
+
+    function stopAgentMapWalkSimulation() {
+        if (agentWalkTimer) {
+            clearInterval(agentWalkTimer);
+            agentWalkTimer = null;
+        }
+        const btn = document.getElementById("btnAgentSimWalk");
+        if (btn) {
+            btn.textContent = "Simular Recorrido de Unidad sobre el Camino";
+            btn.className = "btn-primary";
+        }
+    }
+
+    async function drawActiveOrderOnExistingAgentMap(order) {
+        if (!mapAgent || !loggedInUser) return;
+        stopAgentMapWalkSimulation();
+        if (!agentDestMarker) {
+            agentDestMarker = L.marker(
+                [order.destinationLat, order.destinationLng],
+                { icon: ICON_RED_EMERGENCY }
+            ).addTo(mapAgent);
+        } else {
+            agentDestMarker.setLatLng([order.destinationLat, order.destinationLng]);
+        }
+        agentDestMarker.bindPopup(`<strong>EMERGENCIA #${order.id}:</strong><br/>${order.description}`).openPopup();
+
+        try {
+            const url = `/api/route?originLat=${loggedInUser.stationLat}&originLng=${loggedInUser.stationLng}&destLat=${order.destinationLat}&destLng=${order.destinationLng}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.ok && Array.isArray(data.polyline)) {
+                const rawLatLngs = data.polyline.map((p) => [p.lat, p.lng]);
+                agentCurrentWalkPoints = densifyLatLngArray(rawLatLngs, 0.00045);
+                agentWalkIndex = 0;
+
+                if (agentRoutePolyline) {
+                    mapAgent.removeLayer(agentRoutePolyline);
+                }
+                agentRoutePolyline = L.polyline(agentCurrentWalkPoints, {
+                    color: "#16a34a",
+                    weight: 6,
+                    opacity: 0.92
+                }).addTo(mapAgent);
+
+                if (agentMovingUnitMarker) {
+                    mapAgent.removeLayer(agentMovingUnitMarker);
+                }
+                agentMovingUnitMarker = L.marker(agentCurrentWalkPoints[0], { icon: ICON_MOVING_UNIT })
+                    .addTo(mapAgent)
+                    .bindPopup(`<strong>MI UNIDAD EN RUTA:</strong><br/>${loggedInUser.fullName}`);
+
+                mapAgent.fitBounds(L.latLngBounds(agentCurrentWalkPoints), { padding: [40, 40] });
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function completeActiveAgentOrder() {
+        if (!activeAgentOrderId) return;
+        stopAgentMapWalkSimulation();
+        await fetch("/api/complete_order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                orderId: activeAgentOrderId,
+                callerRole: "AGENTE",
+                agentDpi: loggedInUser ? loggedInUser.dpi : ""
+            })
+        });
+        renderedAgentOrderKey = "";
+        await fetchStateLoop();
+    }
+
+    async function forceSyncNow() {
+        await fetchStateLoop();
+    }
+</script>
+</body>
+</html>

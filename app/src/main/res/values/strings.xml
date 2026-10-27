@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">GeoRutas SOS</string>
+
+    <string name="google_maps_key" translatable="false">AIzaSyAVnS3jfN7_Xbjtgei9nsb0mrU0Ar5-ROY</string>
+</resources>
